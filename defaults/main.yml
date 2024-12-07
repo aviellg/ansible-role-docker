@@ -1,0 +1,10 @@
+# roles/docker/defaults/main.yml
+bootstrap_admin_user: your_default_user
+docker_root_folder: /home/{{ bootstrap_admin_user }}/docker
+PUID: 1000
+PGID: 1000
+TZ: "Europe/Zurich"
+USERDIR: "/home/{{ bootstrap_admin_user }}"
+DOCKERDIR: "/home/{{ bootstrap_admin_user }}/docker"
+DATADIR: "/media/storage"
+HOSTNAME: "udms"

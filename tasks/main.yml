@@ -1,0 +1,145 @@
+#https://www.smarthomebeginner.com/docker-media-server-2024/
+# roles/docker/tasks/main.yml
+- name: Install Docker
+  become: true
+  apt:
+    name: docker.io
+    state: present
+  tags: docker
+
+- name: Install Docker Compose
+  become: true
+  apt:
+    name: docker-compose
+    state: present
+  tags: docker_compose
+
+- name: Add user to Docker group
+  become: true
+  user:
+    name: "{{ bootstrap_admin_user }}"
+    groups: docker
+    append: true
+  tags: docker_group
+
+- name: Create Docker root directory
+  become: true
+  file:
+    path: "{{ docker_root_folder }}"
+    state: directory
+  tags: docker_directories
+
+- name: Create appdata directory
+  become: true
+  file:
+    path: "{{ docker_root_folder }}/appdata"
+    state: directory
+  tags: docker_directories
+
+- name: Create compose directory
+  become: true
+  file:
+    path: "{{ docker_root_folder }}/compose"
+    state: directory
+  tags: docker_directories
+
+- name: Create logs directory
+  become: true
+  file:
+    path: "{{ docker_root_folder }}/logs"
+    state: directory
+  tags: docker_directories
+
+- name: Create scripts directory
+  become: true
+  file:
+    path: "{{ docker_root_folder }}/scripts"
+    state: directory
+  tags: docker_directories
+
+- name: Create secrets directory with permissions
+  become: true
+  file:
+    path: "{{ docker_root_folder }}/secrets"
+    state: directory
+    owner: root
+    group: root
+    mode: '0600'
+  tags: docker_directories
+
+- name: Create shared directory
+  become: true
+  file:
+    path: "{{ docker_root_folder }}/shared"
+    state: directory
+  tags: docker_directories
+
+- name: Create .env file with permissions
+  become: true
+  file:
+    path: "{{ docker_root_folder }}/.env"
+    state: touch
+    owner: root
+    group: root
+    mode: '0600'
+  tags: docker_files
+
+- name: Populate .env file
+  become: true
+  lineinfile:
+    path: "{{ docker_root_folder }}/.env"
+    create: yes
+    line: "{{ item }}"
+  with_items:
+    - "PUID={{ PUID }}"
+    - "PGID={{ PGID }}"
+    - "TZ={{ TZ }}"
+    - "USERDIR={{ USERDIR }}"
+    - "DOCKERDIR={{ DOCKERDIR }}"
+    - "DATADIR={{ DATADIR }}"
+    - "HOSTNAME={{ HOSTNAME }}"
+  tags: docker_files
+
+- name: Create master Docker Compose file
+  become: true
+  file:
+    path: "{{ docker_root_folder }}/docker-compose-udms.yml"
+    state: touch
+  tags: docker_files
+
+- name: Install acl
+  become: true
+  apt:
+    name: acl
+    state: present
+  tags: permissions
+
+- name: Set permissions for Docker root folder
+  become: true
+  command: >
+    chmod 775 {{ docker_root_folder }}
+  tags: permissions
+
+- name: Set ACL for Docker root folder (user)
+  become: true
+  command: >
+    setfacl -Rdm u:{{ bootstrap_admin_user }}:rwx {{ docker_root_folder }}
+  tags: permissions
+
+- name: Set ACL for Docker root folder (user files)
+  become: true
+  command: >
+    setfacl -Rm u:{{ bootstrap_admin_user }}:rwx {{ docker_root_folder }}
+  tags: permissions
+
+- name: Set ACL for Docker root folder (group)
+  become: true
+  command: >
+    setfacl -Rdm g:docker:rwx {{ docker_root_folder }}
+  tags: permissions
+
+- name: Set ACL for Docker root folder (group files)
+  become: true
+  command: >
+    setfacl -Rm g:docker:rwx {{ docker_root_folder }}
+  tags: permissions
