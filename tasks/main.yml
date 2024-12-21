@@ -22,56 +22,23 @@
     append: true
   tags: docker_group
 
-- name: Create Docker root directory
+- name: Create Docker directories with correct permissions
   become: true
   file:
-    path: "{{ docker_root_folder }}"
+    path: "{{ item.path }}"
     state: directory
-  tags: docker_directories
-
-- name: Create appdata directory
-  become: true
-  file:
-    path: "{{ docker_root_folder }}/appdata"
-    state: directory
-  tags: docker_directories
-
-- name: Create compose directory
-  become: true
-  file:
-    path: "{{ docker_root_folder }}/compose"
-    state: directory
-  tags: docker_directories
-
-- name: Create logs directory
-  become: true
-  file:
-    path: "{{ docker_root_folder }}/logs"
-    state: directory
-  tags: docker_directories
-
-- name: Create scripts directory
-  become: true
-  file:
-    path: "{{ docker_root_folder }}/scripts"
-    state: directory
-  tags: docker_directories
-
-- name: Create secrets directory with permissions
-  become: true
-  file:
-    path: "{{ docker_root_folder }}/secrets"
-    state: directory
-    owner: root
-    group: root
-    mode: '0600'
-  tags: docker_directories
-
-- name: Create shared directory
-  become: true
-  file:
-    path: "{{ docker_root_folder }}/shared"
-    state: directory
+    owner: "{{ item.owner | default(bootstrap_admin_user) }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode | default('0775') }}"
+  loop:
+    - { path: "{{ docker_root_folder }}" }
+    - { path: "{{ docker_root_folder }}/appdata" }
+    - { path: "{{ docker_root_folder }}/compose" }
+    - { path: "{{ docker_root_folder }}/compose/udms" }
+    - { path: "{{ docker_root_folder }}/logs" }
+    - { path: "{{ docker_root_folder }}/scripts" }
+    - { path: "{{ docker_root_folder }}/secrets", owner: 'root', group: 'root', mode: '0600' }
+    - { path: "{{ docker_root_folder }}/shared" }
   tags: docker_directories
 
 - name: Create .env file with permissions
@@ -107,39 +74,30 @@
     state: touch
   tags: docker_files
 
-- name: Install acl
+- name: Install required packages and set permissions
   become: true
-  apt:
-    name: acl
-    state: present
-  tags: permissions
+  block:
+    - name: Install acl package
+      apt:
+        name: acl
+        state: present
+      tags: permissions
 
-- name: Set permissions for Docker root folder
-  become: true
-  command: >
-    chmod 775 {{ docker_root_folder }}
-  tags: permissions
+    - name: Set directory permissions
+      file:
+        path: "{{ docker_root_folder }}"
+        mode: '0775'
+      tags: permissions
 
-- name: Set ACL for Docker root folder (user)
-  become: true
-  command: >
-    setfacl -Rdm u:{{ bootstrap_admin_user }}:rwx {{ docker_root_folder }}
-  tags: permissions
-
-- name: Set ACL for Docker root folder (user files)
-  become: true
-  command: >
-    setfacl -Rm u:{{ bootstrap_admin_user }}:rwx {{ docker_root_folder }}
-  tags: permissions
-
-- name: Set ACL for Docker root folder (group)
-  become: true
-  command: >
-    setfacl -Rdm g:docker:rwx {{ docker_root_folder }}
-  tags: permissions
-
-- name: Set ACL for Docker root folder (group files)
-  become: true
-  command: >
-    setfacl -Rm g:docker:rwx {{ docker_root_folder }}
-  tags: permissions
+    - name: Set ACLs for Docker root folder
+      acl:
+        path: "{{ docker_root_folder }}"
+        entity: "{{ item.entity }}"
+        etype: "{{ item.etype }}"
+        permissions: rwx
+        default: yes
+        recurse: yes
+      loop:
+        - { entity: "{{ bootstrap_admin_user }}", etype: user }
+        - { entity: docker, etype: group }
+      tags: permissions
