@@ -1,19 +1,5 @@
 #https://www.smarthomebeginner.com/docker-media-server-2024/
 # roles/docker/tasks/main.yml
-- name: Install Docker
-  become: true
-  apt:
-    name: docker.io
-    state: present
-  tags: docker
-
-- name: Install Docker Compose
-  become: true
-  apt:
-    name: docker-compose
-    state: present
-  tags: docker_compose
-
 - name: Add user to Docker group
   become: true
   user:
