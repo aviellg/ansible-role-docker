@@ -95,18 +95,20 @@
         entity: "{{ item.entity }}"
         etype: "{{ item.etype }}"
         permissions: rwx
+        state: present
         default: yes
       loop:
         - { entity: "{{ bootstrap_admin_user }}", etype: user }
         - { entity: docker, etype: group }
       tags: permissions
 
-    - name: Set ACLs for Docker root folder
+    - name: Set recursive ACLs for Docker root folder
       acl:
         path: "{{ docker_root_folder }}"
         entity: "{{ item.entity }}"
         etype: "{{ item.etype }}"
         permissions: rwx
+        state: present
         recurse: yes
       loop:
         - { entity: "{{ bootstrap_admin_user }}", etype: user }
